@@ -1,0 +1,131 @@
+#include <NewPing.h>
+#include "thingProperties.h"
+
+const int triggerPin1 = 3;  // Ultrasonic sensor 1 trigger pin
+const int echoPin1 = 2;     // Ultrasonic sensor 1 echo pin
+const int triggerPin2 = 9;  // Ultrasonic sensor 2 trigger pin
+const int echoPin2 = 7;     // Ultrasonic sensor 2 echo pin
+
+const int greenPin1 = 8;    // First set of traffic lights for sensor 1
+const int yellowPin1 = 5;
+const int redPin1 = 6;
+
+const int greenPin2 = 11;   // Second set of traffic lights for sensor 2
+const int yellowPin2 = 12;
+const int redPin2 = 10;
+
+const int distanceThreshold1 = 20;  // Adjust as needed based on your setup for sensor 1
+const int distanceThreshold2 = 20;  // Adjust as needed based on your setup for sensor 2
+
+NewPing sonar1(triggerPin1, echoPin1, 20);
+NewPing sonar2(triggerPin2, echoPin2, 20);
+
+void setup() {
+  pinMode(greenPin1, OUTPUT);
+  pinMode(yellowPin1, OUTPUT);
+  pinMode(redPin1, OUTPUT);
+
+  pinMode(greenPin2, OUTPUT);
+  pinMode(yellowPin2, OUTPUT);
+  pinMode(redPin2, OUTPUT);
+
+  // Initialize LEDs to their initial states
+  digitalWrite(greenPin1, LOW);
+  digitalWrite(yellowPin1, LOW);
+  digitalWrite(redPin1, HIGH);
+
+  digitalWrite(greenPin2, LOW);
+  digitalWrite(yellowPin2, LOW);
+  digitalWrite(redPin2, HIGH);
+
+  Serial.begin(9600);
+
+  initProperties();
+
+  ArduinoCloud.begin(ArduinoIoTPreferredConnection);
+
+  setDebugMessageLevel(2);
+  ArduinoCloud.printDebugInfo();
+}
+
+void loop() {
+  ArduinoCloud.update();
+
+  // Read distances from ultrasonic sensors
+  int distance1 = sonar1.ping_cm();
+  int distance2 = sonar2.ping_cm();
+
+  // Print distances to the serial monitor (optional)
+  Serial.print("Distance Sensor 1: ");
+  Serial.println(distance1);
+  Serial.print("Distance Sensor 2: ");
+  Serial.println(distance2);
+
+  // Traffic light control for sensor 1
+  if (distance1 < distanceThreshold1) {
+    // Vehicle detected by sensor 1, control the traffic lights
+    Serial.println("Vehicle detected by Sensor 1!");
+    digitalWrite(redPin1, LOW);
+    digitalWrite(yellowPin1, LOW);
+    digitalWrite(greenPin1, HIGH);
+    delay(5000);  // Green light stays on for 5 seconds
+    digitalWrite(greenPin1, LOW);
+    digitalWrite(yellowPin1, HIGH);
+    delay(2000);  // Yellow light stays on for 2 seconds
+    digitalWrite(yellowPin1, LOW);
+    digitalWrite(redPin1, HIGH);
+  } else {
+    // No vehicle detected by sensor 1, turn off the traffic lights
+    digitalWrite(greenPin1, LOW);
+  }
+
+  // Traffic light control for sensor 2
+  if (distance2 < distanceThreshold2) {
+    // Vehicle detected by sensor 2, control the traffic lights
+    Serial.println("Vehicle detected by Sensor 2!");
+    digitalWrite(redPin2, LOW);
+    digitalWrite(yellowPin2, LOW);
+    digitalWrite(greenPin2, HIGH);
+    delay(5000);  // Green light stays on for 5 seconds
+    digitalWrite(greenPin2, LOW);
+    digitalWrite(yellowPin2, HIGH);
+    delay(2000);  // Yellow light stays on for 2 seconds
+    digitalWrite(yellowPin2, LOW);
+    digitalWrite(redPin2, HIGH);
+  } else {
+    // No vehicle detected by sensor 2, turn off the traffic lights
+    digitalWrite(greenPin2, LOW);
+  }
+
+  // If no vehicle is detected by either sensor, update the traffic lights accordingly
+  if (distance1 >= distanceThreshold1 && distance2 >= distanceThreshold2) {
+    digitalWrite(greenPin1, LOW);
+    digitalWrite(yellowPin1, HIGH);
+    delay(1000);
+    digitalWrite(yellowPin1, LOW);
+    digitalWrite(redPin1, HIGH);
+
+    digitalWrite(greenPin2, LOW);
+    digitalWrite(yellowPin2, HIGH);
+    delay(1000);
+    digitalWrite(yellowPin2, LOW);
+    digitalWrite(redPin2, HIGH);
+
+    delay(3000); // Red lights stay on for 3 seconds
+  }
+
+  // Add a delay between readings
+  delay(500);
+}
+
+void onTrafficChange() {
+  // Assuming the variable "traffic" is representing the traffic status
+}
+
+void onUltrasonicChange() {
+  // Not needed, as the ultrasonic value is updated in the loop
+}
+
+void onVehicleDetectedChange() {
+  // Handle changes in vehicle detection status if needed
+}
